@@ -1,0 +1,11 @@
+target/
+.m2repo/
+out/
+.env
+*.log
+.idea/
+.vscode/
+*.iml
+.DS_Store
+*.orig
+*.rej
