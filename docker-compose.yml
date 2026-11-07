@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: financeflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: financeflow
+      POSTGRES_USER: financeflow
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - financeflow_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U financeflow -d financeflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # O Redis e usado exclusivamente como cache: sem AOF/RDB, pois todo o
+  # conteudo e descartavel e o PostgreSQL e a fonte oficial dos dados.
+  redis:
+    image: redis:7.4-alpine
+    container_name: financeflow-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  financeflow_data:
