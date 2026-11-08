@@ -1,0 +1,37 @@
+# Perfil de testes de integracao executados sem Docker.
+# H2 em modo PostgreSQL permite exercitar repositories, JPQL e o contexto web.
+# Na CI os mesmos testes rodam contra PostgreSQL 17 real (ver TEST_DB_URL).
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:h2:mem:financeflow;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE}
+    username: ${TEST_DB_USERNAME:sa}
+    password: ${TEST_DB_PASSWORD:}
+    driver-class-name: ${TEST_DB_DRIVER:org.h2.Driver}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${TEST_DDL_AUTO:create-drop}
+    open-in-view: false
+
+  flyway:
+    enabled: ${TEST_FLYWAY_ENABLED:false}
+
+  data:
+    # Porta sem servico de proposito: prova que a API responde sem Redis.
+    redis:
+      host: ${TEST_REDIS_HOST:localhost}
+      port: ${TEST_REDIS_PORT:6399}
+      timeout: 200ms
+      connect-timeout: 100ms
+
+financeflow:
+  jwt:
+    secret: test-only-secret-key-with-at-least-32-bytes
+    expiration: 1h
+  reports:
+    cache-ttl: 1s
+
+logging:
+  level:
+    com.financeflow: INFO
+    org.hibernate: WARN

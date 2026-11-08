@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/financeflow_test}
+    username: ${TEST_DB_USERNAME:financeflow}
+    password: ${TEST_DB_PASSWORD:change_me}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    clean-disabled: false
+
+  data:
+    redis:
+      host: ${TEST_REDIS_HOST:localhost}
+      port: ${TEST_REDIS_PORT:6379}
+      timeout: 500ms
+      connect-timeout: 200ms
+
+financeflow:
+  jwt:
+    # Segredo de teste com 32+ bytes; nunca usado fora de teste.
+    secret: test-only-secret-key-with-at-least-32-bytes
+    expiration: 1h
+  reports:
+    # TTL curto para validar expiracao sem sleep longo.
+    cache-ttl: 1s
+
+logging:
+  level:
+    com.financeflow: INFO
