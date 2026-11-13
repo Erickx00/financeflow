@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: financeflow_test
+          POSTGRES_USER: financeflow
+          POSTGRES_PASSWORD: change_me
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U financeflow -d financeflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Build e testes (unitarios + integracao com H2 e Redis real)
+        env:
+          TEST_REDIS_HOST: localhost
+          TEST_REDIS_PORT: "6379"
+        run: mvn -B -ntp verify
+
+      - name: Migracoes Flyway e integracao contra PostgreSQL 17 real
+        env:
+          TEST_DB_URL: jdbc:postgresql://localhost:5432/financeflow_test
+          TEST_DB_USERNAME: financeflow
+          TEST_DB_PASSWORD: change_me
+          TEST_DB_DRIVER: org.postgresql.Driver
+          TEST_DDL_AUTO: validate
+          TEST_FLYWAY_ENABLED: "true"
+          TEST_REDIS_HOST: localhost
+          TEST_REDIS_PORT: "6379"
+        run: mvn -B -ntp test -Dtest='ApiIntegrationTest,AuthorizationMatrixTest'
+
+      - name: Publicar relatorios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
